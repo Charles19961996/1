@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon Aaagenda</title>
+    
+    <!-- Scripts CDN officiels mondiaux stables (Version Globale V6) -->
+    <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js"></script>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #93BDAC;
+            margin: 0;
+            padding: 0;
+        }
+
+        /* Barre de navigation */
+        .navbar {
+            background-color: #2c3e50;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+        }
+
+        .nav-item {
+            color: white;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background 0.2s;
+        }
+
+        .nav-item:hover {
+            background-color: #34495e;
+        }
+
+        .nav-item.active {
+            background-color: #3498db;
+        }
+
+        /* Grand conteneur blanc pour le calendrier */
+        .container {
+            max-width: 900px;
+            margin: 30px auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        /* Zone de calendrier optimisée pour éviter les lags sur StackBlitz */
+        #calendar {
+            max-height: 700px;
+        }
+
+        /* Personnalisation des boutons style Google Agenda */
+        .fc .fc-button-primary {
+            background-color: #1a73e8 !important;
+            border-color: #1a73e8 !important;
+        }
+        .fc .fc-button-primary:hover {
+            background-color: #1557b0 !important;
+        }
+        .fc-event {
+            background-color: #519a19 !important;
+            border: none !important;
+            cursor: pointer;
+        }
+
+        .fc-header-toolbar {
+            display: none !important;
+        }
+
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.45);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .modal.hidden {
+            display: none;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            width: min(420px, 90vw);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .modal-content h3 {
+            margin: 0 0 8px;
+        }
+
+        .modal-content label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-weight: bold;
+            color: #2c3e50;
+        }
+
+        .modal-content input,
+        .modal-content select,
+        .modal-content textarea {
+            padding: 10px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        .modal-content textarea {
+            resize: vertical;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .modal-actions button {
+            padding: 10px 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .modal-actions .secondary {
+            background: #e2e8f0;
+            color: #1e293b;
+        }
+
+        .modal-actions button:not(.secondary) {
+            background: #1a73e8;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Barre de navigation -->
+    <nav class="navbar">
+        <a href="index.html" class="nav-item">👥 Liste Élèves</a>
+        <a href="agenda.html" class="nav-item active">📅 Mon Agenda</a>
+    </nav>
+
+    <div class="container">
+        <!-- Zone d'injection du calendrier -->
+        <div id="calendar"></div>
+    </div>
+
+    <!-- POPUP D'AJOUT D'ÉVÉNEMENT : ce bloc est affiché au clic sur un créneau du calendrier -->
+    <div id="eventModal" class="modal hidden" aria-hidden="true">
+        <div class="modal-content">
+            <h3>Ajouter un évènement</h3>
+            <p style="margin:0; color:#475569; font-size:14px;">Choisis la date et les heures de début/fin.</p>
+
+            <label>
+                Nom de l'élève
+                <select id="modalNomEvenement">
+                    <option value="">Choisir un élève</option>
+                </select>
+            </label>
+
+            <label id="secondEleveContainer" class="hidden">
+                Ajouter un autre élève
+                <select id="modalDeuxiemeEleve">
+                    <option value="">Aucun autre élève</option>
+                </select>
+            </label>
+
+            <label>
+                Date
+                <input type="date" id="modalDateEvenement">
+            </label>
+
+            <div style="display:flex; gap:10px;">
+                <label style="flex:1;">
+                    Heure de début
+                    <input type="time" id="modalDebutHeure" step="900">
+                </label>
+                <label style="flex:1;">
+                    Heure de fin
+                    <input type="time" id="modalFinHeure" step="900">
+                </label>
+            </div>
+
+            <label>
+                Détail / commentaire
+                <textarea id="modalDescriptionEvenement" rows="3" placeholder="Ex: Révision, concours, devoir..."></textarea>
+            </label>
+
+            <div class="modal-actions">
+                <button id="cancelEventBtn" type="button" class="secondary">Annuler</button>
+                <button id="saveEventBtn" type="button">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script de logique -->
+    <script src="agenda.js"></script>
+
+</body>
+</html>
